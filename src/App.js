@@ -1,24 +1,26 @@
-import React from 'react';
-import logo from './logo.svg';
+import React, {useState, useEffect} from 'react';
 import './App.css';
+import ChoreList from './ChoreList'
+import UserInfo from './UserInfo'
 
-function App() {
+
+var initialChores = [
+  {id: 1, choreName: "Chore Task 1", reward: 15, nextStartTime: 0, inUseBy: ""},
+  {id: 2, choreName: "Chore Task 2", reward: 15, nextStartTime: 0, inUseBy: ""},
+  {id: 3, choreName: "Chore Task 3", reward: 15, nextStartTime: 0, inUseBy: ""},
+  {id: 4, choreName: "Chore Task 4", reward: 15, nextStartTime: 0, inUseBy: ""},
+  {id: 5, choreName: "Chore Task 5", reward: 15, nextStartTime: 0, inUseBy: ""},
+  {id: 6, choreName: "Chore Task 6", reward: 15, nextStartTime: 0, inUseBy: ""},
+]
+
+
+function App(props) {
+  const [chores, setChores] = useState([])
+  const [user, setUser] = useState([])
   return (
     <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
+      <UserInfo user={props.user}/>
+      <ChoreList user={props.user} />
     </div>
   );
 }
