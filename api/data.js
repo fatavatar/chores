@@ -2,13 +2,18 @@ const mongoose = require("mongoose");
 const Schema = mongoose.Schema;
 
 // this will be our data base's data structure 
-const DataSchema = new Schema(
+const Chore = new Schema(
   {
-    id: Number,
-    message: String
+    _id: Number,
+    choreName: String,
+    reward: Number,
+    lastEndTime: Schema.Types.Date,
+    repeatDelay: Number,
+    beingDoneBy: String,
+    description: String
   },
-  { timestamps: true }
+  { timestamps: false, collection: "chores" }
 );
 
 // export the new Schema so we could modify it using Node.js
-module.exports = mongoose.model("Data", DataSchema);
+module.exports = mongoose.model("Chore", Chore);
