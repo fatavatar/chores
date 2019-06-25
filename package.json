@@ -1,0 +1,23 @@
+{
+  "name": "chores",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "concurrently \"cd api && node index.js\" \"cd client && npm start\""
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/fatavatar/chores.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/fatavatar/chores/issues"
+  },
+  "homepage": "https://github.com/fatavatar/chores#readme",
+  "dependencies": {
+    "concurrently": "^4.1.0"
+  }
+}

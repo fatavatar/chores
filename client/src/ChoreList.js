@@ -1,9 +1,10 @@
 import React, {useState} from "react"
+import ReactMarkdown from 'react-markdown'
 
 function Chore(props) {
 
   const [shown, setShown] = useState(false)
-  const canStart = props.chore.beingDoneBy === "" && Date.now() > (props.chore.lastEndTime + props.chore.repeatDelay)
+  const canStart = !props.isBusy && props.chore.beingDoneBy === "" && Date.now() > (Date.parse(props.chore.lastEndTime) + props.chore.repeatDelay)
   const canStop = props.user === props.chore.beingDoneBy
 
   return(
@@ -12,7 +13,7 @@ function Chore(props) {
     
     {shown &&
       <div>
-      {props.chore.description}
+        <ReactMarkdown source={props.chore.description} />
       </div>
     }
     </div>
@@ -21,14 +22,18 @@ function Chore(props) {
 
 export default function ChoreList(props) {
 
+  const isBusy = props.chores.filter((item, index) => {
+    return item.beingDoneBy === props.user
+  }).length > 0
   return(
     <div>
       {props.chores.map((item,index) => (
         <Chore chore={item}          
-               key={item.id} 
+               key={item._id} 
                user={props.user}     
-               startChore={ () => {props.actions.startChore(item.id)}}
-               stopChore={ () => {props.actions.stopChore(item.id)}}
+               isBusy={isBusy}
+               startChore={ () => {props.actions.startChore(item._id)}}
+               stopChore={ () => {props.actions.stopChore(item._id)}}
               />
       ))}
     </div>

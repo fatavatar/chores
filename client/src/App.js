@@ -3,67 +3,87 @@ import './App.css';
 import ChoreList from './ChoreList'
 import UserInfo from './UserInfo'
 import Login from './Login'
+import NewChore from './NewChore'
 import { useCookies } from 'react-cookie';
-
-
-
-var initialChores = [
-  {id: 1, choreName: "Chore Task 1", reward: 15, lastEndTime: 0, repeatDelay: 5000, beingDoneBy: "", description: "Testing 123"},
-  {id: 2, choreName: "Chore Task 2", reward: 15, lastEndTime: 0, repeatDelay: 5000, beingDoneBy: "", description: "Testing 123"},
-  {id: 3, choreName: "Chore Task 3", reward: 15, lastEndTime: 0, repeatDelay: 5000, beingDoneBy: "", description: "Testing 123"},
-  {id: 4, choreName: "Chore Task 4", reward: 15, lastEndTime: 0, repeatDelay: 5000, beingDoneBy: "", description: "Testing 123"},
-  {id: 5, choreName: "Chore Task 5", reward: 15, lastEndTime: 0, repeatDelay: 5000, beingDoneBy: "", description: "Testing 123"},
-  {id: 6, choreName: "Chore Task 6", reward: 15, lastEndTime: 0, repeatDelay: 5000, beingDoneBy: "", description: "Testing 123"},
-] 
-
-const users = [ "Hugo", "Brody", "Kiefer" ]
-
+import axios from 'axios';
 
 function App() {
-  const [chores, setChores] = useState(initialChores)
-  const [cookies, setCookie, removeCookie] = useCookies(['username']);
-  const [loggedIn, setLoggedIn] = useState(cookies.username)
+  const [chores, setChores] = useState([])
+  const [cookies, setCookie, removeCookie] = useCookies(['user']);
+  const [loggedIn, setLoggedIn] = useState(cookies.user)
 
 
   useEffect(() => {
-    // setChores(initialChores)
-    var interval = setInterval(() => setChores(chores.slice()), 1000)
+    const fetchData = async () => {
+      if (loggedIn) {
+        // console.log(cookies.user.name)
+
+        const result = await axios(
+          'http://localhost:3001/chores' 
+        );
+
+        // console.log(result)
+
+        setChores(result.data.data.filter( (item, index) => {
+         // console.log(item)
+          return item.validFor.includes(cookies.user.name)
+        }));
+      }
+    };
+
+    fetchData();
+    var interval = setInterval(() => { if (loggedIn) fetchData()}, 5000)
+
+
     return () => {      
       clearInterval(interval);
     }
-  }, [chores])
+  }, [loggedIn, cookies.user])
 
   var actions = {
-    startChore: (id) => {
-      const newchores = chores.slice()
+    startChore: async(id) => {
       console.log("Starting chore " + id)
-      const newchore = newchores.find((chore) => {
-        return chore.id === id
-      })
-      newchore.beingDoneBy = cookies.username
-      setChores(newchores)
+
+      const result = await axios(
+        'http://localhost:3001/start/' + id + '/' + cookies.user.name
+      );
+
+      console.log(result)
+      if (result.data.success) {
+        setChores(result.data.chores.filter( (item, index) => {
+        // console.log(item)
+         return item.validFor.includes(cookies.user.name)
+       }));
+      }
+      else console.log(result.data.error)
     },
 
-    stopChore: (id) => {
-      const newchores = chores.slice()
+    stopChore: async(id) => {
       console.log("Stopping chore " + id)
-      const newchore = newchores.find((chore) => {
-        return chore.id === id
-      })
-      newchore.lastEndTime = Date.now()
-      newchore.beingDoneBy = ""
-      setChores(newchores)
+
+      const result = await axios(
+        'http://localhost:3001/stop/' + id + '/' + cookies.user.name
+      );
+
+      console.log(result)
+      if (result.data.success)  {
+        setChores(result.data.chores.filter( (item, index) => {
+        // console.log(item)
+         return item.validFor.includes(cookies.user.name)
+       }));
+      }
+      else console.log(result.data.error)
     },
 
-    login: (id) => {    
-      setCookie('username',users[id])
-      console.log("Logging in " + users[id])
+    login: (user) => {    
+      setCookie('user',user)
+      console.log("Logging in " + user.name)
   
       setLoggedIn(true)
     },
 
     logout: () => {
-      removeCookie('username')
+      removeCookie('user')
       setLoggedIn(false)
     }
   }
@@ -71,11 +91,12 @@ function App() {
   return (
     <div className="App">
       {loggedIn ? (
-        <UserInfo user={cookies.username} actions={actions}/>
+        <UserInfo user={cookies.user.name} actions={actions}/>
       ) : (
-        <Login users={users} actions={actions}/>
+        <Login actions={actions}/>
       )}
-      { loggedIn &&<ChoreList user={cookies.username} chores={chores} actions={actions} /> }       
+      { loggedIn && !cookies.user.isAdmin &&<ChoreList user={cookies.user.name} chores={chores} actions={actions} /> }       
+      { loggedIn && cookies.user.isAdmin && <NewChore actions={actions} /> }       
 
     </div>
   );
