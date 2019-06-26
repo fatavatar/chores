@@ -7,9 +7,13 @@ function Chore(props) {
   const canStart = !props.isBusy && props.chore.beingDoneBy === "" && Date.now() > (Date.parse(props.chore.lastEndTime) + props.chore.repeatDelay)
   const canStop = props.user === props.chore.beingDoneBy
 
+  function pictureTaken(event) {
+    props.stopChore(event.target.files[0])
+  }
+
   return(
     <div><span onClick={() => setShown(!shown)}>{props.chore.choreName}</span> - {props.chore.reward} - { canStart && <button onClick={props.startChore}>Start Chore</button> }
-    {props.chore.beingDoneBy} { canStop && <button onClick={props.stopChore}>Finish</button>}
+    {props.chore.beingDoneBy} { canStop && <form ><input type="file" name="image" accept="image/*" capture="user" onChange={pictureTaken} /></form> }
     
     {shown &&
       <div>
@@ -33,7 +37,7 @@ export default function ChoreList(props) {
                user={props.user}     
                isBusy={isBusy}
                startChore={ () => {props.actions.startChore(item._id)}}
-               stopChore={ () => {props.actions.stopChore(item._id)}}
+               stopChore={ (image) => {props.actions.stopChore(item._id, image)}}
               />
       ))}
     </div>

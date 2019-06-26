@@ -10,6 +10,7 @@ const UserSchema = new Schema(
     name: String,
     isAdmin: Boolean,
     currentRewards: Number,
+    email: String,
   },
   { timestamps: false, collection: "users" }
 );

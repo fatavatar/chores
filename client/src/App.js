@@ -11,7 +11,7 @@ function App() {
   const [chores, setChores] = useState([])
   const [cookies, setCookie, removeCookie] = useCookies(['user']);
   const [loggedIn, setLoggedIn] = useState(cookies.user)
-
+  const [time, setTime] = useState(0)
 
   useEffect(() => {
     const fetchData = async () => {
@@ -28,6 +28,11 @@ function App() {
          // console.log(item)
           return item.validFor.includes(cookies.user.name)
         }));
+
+        const result1 = await axios(
+          'http://localhost:3001/getTime/' + cookies.user.name
+        )
+        setTime(result1.data.rewards)
       }
     };
 
@@ -58,19 +63,26 @@ function App() {
       else console.log(result.data.error)
     },
 
-    stopChore: async(id) => {
+    stopChore: async(id, photoData) => {
       console.log("Stopping chore " + id)
 
-      const result = await axios(
-        'http://localhost:3001/stop/' + id + '/' + cookies.user.name
+      const formData = new FormData();
+      formData.append('photo',photoData)
+      const config = {
+          headers: {
+              'content-type': 'multipart/form-data'
+          }
+      }
+      const result = await axios.post(
+        'http://localhost:3001/stop/' + id + '/' + cookies.user.name,
+        formData, config
       );
 
-      console.log(result)
       if (result.data.success)  {
         setChores(result.data.chores.filter( (item, index) => {
         // console.log(item)
-         return item.validFor.includes(cookies.user.name)
-       }));
+          return item.validFor.includes(cookies.user.name)
+        }));
       }
       else console.log(result.data.error)
     },
@@ -85,13 +97,23 @@ function App() {
     logout: () => {
       removeCookie('user')
       setLoggedIn(false)
+    },
+
+    redeem: async (type) => {
+      const result = await axios('http://localhost:3001/redeem/'+ type + '/' + cookies.user.name)
+      console.log(result)
+      if (result.data.success) {
+        alert("Successfully added time")
+      } else {
+        alert("Error redeeming your time!")
+      }
     }
   }
 
   return (
     <div className="App">
       {loggedIn ? (
-        <UserInfo user={cookies.user.name} actions={actions}/>
+        <UserInfo user={cookies.user.name} actions={actions} rewards={time}/>
       ) : (
         <Login actions={actions}/>
       )}

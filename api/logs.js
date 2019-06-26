@@ -8,6 +8,7 @@ const LogSchema = new Schema(
   {
     user: User.schema,
     chore: Chore.schema,
+    photo: String,
     action: String
   },
   { timestamps: true, collection: "logs" }

@@ -6,11 +6,14 @@ const logger = require('morgan');
 const Chores = require('./chores');
 const Users = require('./users')
 const Log = require('./logs')
+const Gmail = require('./creds')
+const multer = require('multer')
 
 const API_PORT = 3001;
 const app = express();
 app.use(cors());
 const router = express.Router();
+const fileupload = multer();
 
 // this is our MongoDB database
 const dbRoute =
@@ -69,59 +72,125 @@ router.get('/start/:id/:user', (req, res) => {
         })
       } else { 
         chore.beingDoneBy = req.params.user
-        Chores.findByIdAndUpdate(req.params.id, chore, (err) => {
+        Chores.findByIdAndUpdate(req.params.id, chore, async (err) => {
           if (err) return res.json({ success: false, error: err});
           let startLog = new Log()
           startLog.user = user
           startLog.chore = chore
           startLog.action = "start"
-          startLog.save((err) => {
+          await startLog.save()
+          Chores.find((err,data) => {
             if (err) return res.json({ success: false, error: err});
-            Chores.find((err,data) => {
-              if (err) return res.json({ success: false, error: err});
-              return res.json({success: true, chores: data})  
-            })
-          })
+            return res.json({success: true, chores: data})  
+          })          
         })
       }
     })
   })
 });
+
+
+router.get('/redeem/:type/:user', (req, res) => {
+  Users.findOne({name: req.params.user}, async (err, foundUser) => {
+    if (err) return res.json({ success: false, error: err });
+    if (foundUser.currentRewards >= 15) {
+      foundUser.currentRewards -= 15
+      await foundUser.save()
+      const mailOptions = {
+        from: 'chores@gmail.com', // sender address
+        to: "trigger@applet.ifttt.com", // list of receivers
+        subject: "#" + (req.params.type === "tv" ? "GAMES" : req.params.user.toUpperCase()),
+      };
+      Gmail.sendMail(mailOptions, function (err, info) {
+        if(err)
+          console.log(err)
+        else
+          console.log(info);
+     });
+     return res.json({success:true})
+    } else {
+      return res.json({success: false, error: "Not enough time."})
+    }
+  })
+})
+
+router.get('/getTime/:user', (req, res) => {
+  Users.findOne({name: req.params.user}, (err, foundUser) => {
+    if (err) return res.json({ success: false, error: err });
+    else return res.json({success: true, rewards: foundUser.currentRewards})
+  })
+})
 
 // this is our update method
 // this method overwrites existing data in our database
 router.get('/stop/:id/:user', (req, res) => {
+  stopChore(res, req.params.id, req.params.user, null)
+})
 
-  Chores.findById(req.params.id, (err, chore) => {
+router.post('/stop/:id/:user', fileupload.single('photo'), (req, res) => {
+  const formData = req.file
+  console.log("Stopping Chore " + req.params.id + " for user " + req.params.user)
+  base64Data = Buffer.from(formData.buffer, 'binary').toString('base64')
+  stopChore(res, req.params.id, req.params.user, base64Data)
+})
+
+function stopChore(res, id, user, photo) {
+  console.log("photo = " + photo)
+  
+  Chores.findById(id, (err, chore) => {
     if (err) return res.json({ success: false, error: err });
-    Users.findOne({name: req.params.user}, (err, user) => {
+    Users.findOne({name: user}, async (err, foundUser) => {
       if (err) return res.json({success: false, error: err});
-      if (!chore.beingDoneBy || chore.beingDoneBy !== req.params.user) {
+      if (!chore.beingDoneBy || chore.beingDoneBy !== user) {
         Chores.find((err,data) => {
           if (err) return res.json({ success: false, error: err});
-          return res.json({success: false, error: "Chore not owned by " + req.params.user, chores: data})  
+          return res.json({success: false, error: "Chore not owned by " + user, chores: data})  
         })
       } else {        
+        foundUser.currentRewards += chore.reward
+        await foundUser.save()
         chore.beingDoneBy = ""
         chore.lastEndTime = Date.now()
-        Chores.findByIdAndUpdate(req.params.id, chore, (err) => {
-          if (err) return res.json({ success: false, error: err});
-          let stopLog = new Log()
-          stopLog.user = user
-          stopLog.chore = chore
-          stopLog.action = "stop"
-          stopLog.save((err) => {
-            if (err) return res.json({ success: false, error: err});
-            Chores.find((err,data) => {
-              if (err) return res.json({ success: false, error: err});
-              return res.json({success: true, chores: data})  
-            })
+        await Chores.save()
+        
+        let stopLog = new Log()
+        stopLog.user = foundUser
+        stopLog.chore = chore
+        stopLog.action = "stop"
+        stopLog.photo = photo 
+        await stopLog.save()
+        // Send email:
+        Users.find({isAdmin: true}, (err, admins) => {
+          admins.map((item) => {
+            const mailOptions = {
+              attachments: {
+                cid:"DonePhoto",
+                encoding: "base64",
+                content: photo,
+                filename: false                    
+              },
+              from: 'chores@gmail.com', // sender address
+              to: item.email, // list of receivers
+              subject: chore.choreName + ' done by ' + user, // Subject line
+              html: '<p>' + user + ' completed ' + chore.choreName + ' at ' + chore.lastEndTime + '<br /> <br /> <img alt="Done Photo" src="cid:DonePhoto"></p>'// plain text body
+            };
+            Gmail.sendMail(mailOptions, function (err, info) {
+              if(err)
+                console.log(err)
+              else
+                console.log(info);
+            });
           })
         })
+
+        Chores.find((err,data) => {
+          if (err) return res.json({ success: false, error: err});
+          return res.json({success: true, chores: data})  
+        })        
       }
     })
   })
-});
+};
 
 
 // this is our delete method
@@ -135,43 +204,15 @@ router.delete('/deleteData', (req, res) => {
 });
 
 
-const startUsers = [
-  {
-    name: 'Kiefer',
-    isAdmin: false,
-    currentRewards: 0,
-  },
-  {
-    name: 'Hugo',
-    isAdmin: false,
-    currentRewards: 0,
-  },
-  {
-    name: 'Brody',
-    isAdmin: false,
-    currentRewards: 0,
-  },
-  {
-    name: 'Dad',
-    isAdmin: true,
-    currentRewards: 0,
-  },
-  {
-    name: 'Mom',
-    isAdmin: true,
-    currentRewards: 0,
-  }
-]
-
-router.get('/initializeUsers', (req,res) => {
-  startUsers.map((item, index) => {
+router.post('/initializeUsers', (req,res) => {
+  startUsers = req.body
+  startUsers.map( async (item, index) => {
     let newUser = new Users()
     newUser.name = item.name
     newUser.isAdmin = item.isAdmin
     newUser.currentRewards = item.currentRewards
-    newUser.save((err) => {
-      if (err) console.log("error saving the user" + err)      
-    })
+    newUser.email = item.email
+    await newUser.save()
   })
   return res.json({ success: true })
 
@@ -179,7 +220,7 @@ router.get('/initializeUsers', (req,res) => {
 
 // this is our create methid
 // this method adds new data in our database
-router.post('/addChore', (req, res) => {
+router.post('/addChore', async (req, res) => {
   let chore = new Chores();
 
   const { name, reward, description, users, repeatDelay } = req.body;
@@ -192,10 +233,9 @@ router.post('/addChore', (req, res) => {
   chore.lastEndTime = 0
   chore.repeatDelay = repeatDelay
 
-  chore.save((err) => {
-    if (err) return res.json({ success: false, error: err });
-    return res.json({ success: true });
-  });
+  await chore.save()
+  return res.json({ success: true });
+  
 });
 
 // append /api for our http requests
