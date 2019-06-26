@@ -19,6 +19,8 @@ function getParameterByName(name, url) {
 
 
 ReactDOM.render(
+
+
 <CookiesProvider>
 <App />
 </CookiesProvider>

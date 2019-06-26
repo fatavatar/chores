@@ -9,7 +9,7 @@ const Log = require('./logs')
 const Gmail = require('./creds')
 const multer = require('multer')
 
-const API_PORT = 3001;
+const API_PORT = 8080;
 const app = express();
 app.use(cors());
 const router = express.Router();
@@ -135,7 +135,6 @@ router.post('/stop/:id/:user', fileupload.single('photo'), (req, res) => {
 })
 
 function stopChore(res, id, user, photo) {
-  console.log("photo = " + photo)
   
   Chores.findById(id, (err, chore) => {
     if (err) return res.json({ success: false, error: err });
@@ -151,7 +150,7 @@ function stopChore(res, id, user, photo) {
         await foundUser.save()
         chore.beingDoneBy = ""
         chore.lastEndTime = Date.now()
-        await Chores.save()
+        await chore.save()
         
         let stopLog = new Log()
         stopLog.user = foundUser

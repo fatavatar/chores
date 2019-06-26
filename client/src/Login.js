@@ -1,6 +1,7 @@
 import React, {useState, useEffect} from 'react';
 import './App.css';
 import axios from 'axios';
+import { Box, List, ListItem, ListItemText, Typography } from '@material-ui/core';
 
 
 export default function Login(props) {
@@ -9,8 +10,8 @@ export default function Login(props) {
   useEffect(() => {
     const fetchData = async () => {
       const result = await axios(
-        'http://localhost:3001/users'
-      );
+        props.apihost + 'users'
+      ); 
 
       console.log(result)
       if (result.data.success) setUsers(result.data.data);
@@ -18,13 +19,20 @@ export default function Login(props) {
     };
 
     fetchData();
-  }, [])
+  }, [props.apihost])
 
   return (
-    <div>
+    <Box style={{padding: '10px 10px 10px 10px'}}>
+      <Typography variant="h4">
+        Select User
+      </Typography>
+      <List>
     {users.map((item, index) => (
-      <button key={item._id} onClick={() => {props.actions.login(item)}} >{item.name}</button>
+      <ListItem key={item._id} onClick={() => {props.actions.login(item)}} divider button>
+      <ListItemText primary={item.name} />
+      </ListItem>
     ))}  
-    </div>  
+    </List>
+    </Box>  
   )
 }

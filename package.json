@@ -18,6 +18,7 @@
   },
   "homepage": "https://github.com/fatavatar/chores#readme",
   "dependencies": {
+    "@material-ui/icons": "^4.2.1",
     "concurrently": "^4.1.0"
   }
 }

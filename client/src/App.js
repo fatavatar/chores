@@ -6,6 +6,11 @@ import Login from './Login'
 import NewChore from './NewChore'
 import { useCookies } from 'react-cookie';
 import axios from 'axios';
+import { Container } from '@material-ui/core';
+import CssBaseline from '@material-ui/core/CssBaseline';
+
+
+const apihost='http://192.168.1.199:3001/'
 
 function App() {
   const [chores, setChores] = useState([])
@@ -19,7 +24,7 @@ function App() {
         // console.log(cookies.user.name)
 
         const result = await axios(
-          'http://localhost:3001/chores' 
+          apihost + 'chores' 
         );
 
         // console.log(result)
@@ -30,7 +35,7 @@ function App() {
         }));
 
         const result1 = await axios(
-          'http://localhost:3001/getTime/' + cookies.user.name
+          apihost + 'getTime/' + cookies.user.name
         )
         setTime(result1.data.rewards)
       }
@@ -50,7 +55,7 @@ function App() {
       console.log("Starting chore " + id)
 
       const result = await axios(
-        'http://localhost:3001/start/' + id + '/' + cookies.user.name
+        apihost + 'start/' + id + '/' + cookies.user.name
       );
 
       console.log(result)
@@ -74,7 +79,7 @@ function App() {
           }
       }
       const result = await axios.post(
-        'http://localhost:3001/stop/' + id + '/' + cookies.user.name,
+        apihost + 'stop/' + id + '/' + cookies.user.name,
         formData, config
       );
 
@@ -100,10 +105,10 @@ function App() {
     },
 
     redeem: async (type) => {
-      const result = await axios('http://localhost:3001/redeem/'+ type + '/' + cookies.user.name)
+      const result = await axios(apihost + 'redeem/'+ type + '/' + cookies.user.name)
       console.log(result)
       if (result.data.success) {
-        alert("Successfully added time")
+        alert("Successfully added 15 minutes to " + type)
       } else {
         alert("Error redeeming your time!")
       }
@@ -111,16 +116,20 @@ function App() {
   }
 
   return (
-    <div className="App">
+    <React.Fragment>      
+    <CssBaseline />
+    <Container maxWidth="md" style={{padding:'0px 0px 0px 0px'}} >
       {loggedIn ? (
         <UserInfo user={cookies.user.name} actions={actions} rewards={time}/>
       ) : (
-        <Login actions={actions}/>
+        <Login apihost={apihost} actions={actions}/>
       )}
       { loggedIn && !cookies.user.isAdmin &&<ChoreList user={cookies.user.name} chores={chores} actions={actions} /> }       
       { loggedIn && cookies.user.isAdmin && <NewChore actions={actions} /> }       
 
-    </div>
+    </Container>
+    </React.Fragment>
+
   );
 }
 
