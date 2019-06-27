@@ -16,18 +16,34 @@ const router = express.Router();
 const fileupload = multer();
 
 // this is our MongoDB database
-const dbRoute =
-  'mongodb://@192.168.1.114:27017/chores';
+const dbRoute = 'mongodb://@192.168.1.114:27017/chores';
+
+var db = mongoose.connection;
+
+db.on('connecting', function() {
+  console.log('connecting to MongoDB...');
+  });
+
+db.on('error', function(error) {
+  console.error('Error in MongoDb connection: ' + error);
+  mongoose.disconnect();
+  });
+db.on('connected', function() {
+  console.log('MongoDB connected!');
+  });
+db.once('open', function() {
+  console.log('MongoDB connection opened!');
+  });
+db.on('reconnected', function () {
+  console.log('MongoDB reconnected!');
+  });
+db.on('disconnected', function() {
+  console.log('MongoDB disconnected!');
+  mongoose.connect(dbRoute, { useNewUrlParser: true, server: {auto_reconnect:true }});
+  });
 
 // connects our back end code with the database
-mongoose.connect(dbRoute, { useNewUrlParser: true });
-
-let db = mongoose.connection;
-
-db.once('open', () => console.log('connected to the database'));
-
-// checks if connection with the database is successful
-db.on('error', console.error.bind(console, 'MongoDB connection error:'));
+mongoose.connect(dbRoute, { useNewUrlParser: true, server: {auto_reconnect:true }});
 
 // (optional) only made for logging and
 // bodyParser, parses the request body to be a readable json format
@@ -126,6 +142,30 @@ router.get('/getTime/:user', (req, res) => {
 router.get('/stop/:id/:user', (req, res) => {
   stopChore(res, req.params.id, req.params.user, null)
 })
+
+router.get('/cancel/:id/:user', (req, res) => {
+  console.log("Canceling Chore " + req.params.id + " for user " + req.params.user)
+  Chores.findById(req.params.id, (err, chore) => {
+    if (err) return res.json({ success: false, error: err });
+    Users.findOne({name: req.params.user}, async (err, foundUser) => {
+      if (err) return res.json({success: false, error: err});
+      if (chore.beingDoneBy === foundUser.name) {
+        chore.beingDoneBy = ""
+        await chore.save()
+        Chores.find((err,data) => {
+          if (err) return res.json({ success: false, error: err});
+          return res.json({success: true, chores: data})  
+        })    
+      } else {
+        Chores.find((err,data) => {
+          if (err) return res.json({ success: false, error: err});
+          return res.json({success: false, error: "Chore not owned by " + user, chores: data})  
+        })
+      }
+    })
+  })
+})
+
 
 router.post('/stop/:id/:user', fileupload.single('photo'), (req, res) => {
   const formData = req.file

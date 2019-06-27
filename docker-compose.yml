@@ -1,0 +1,15 @@
+version: '2'
+
+services:
+  chores_client:
+    image: chores_client
+    restart: always
+    ports:
+      - 8002:3000
+
+  chores_api:
+    image: chores_api
+    restart: always
+    ports:
+      - 8001:8080
+

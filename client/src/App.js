@@ -10,7 +10,7 @@ import { Container } from '@material-ui/core';
 import CssBaseline from '@material-ui/core/CssBaseline';
 
 
-const apihost='http://192.168.1.199:3001/'
+const apihost='https://api.chores.thelucks.org/'
 
 function App() {
   const [chores, setChores] = useState([])
@@ -67,7 +67,22 @@ function App() {
       }
       else console.log(result.data.error)
     },
+    cancelChore: async(id) => {
+      console.log("Cancelling chore " + id)
 
+      const result = await axios(
+        apihost + 'cancel/' + id + '/' + cookies.user.name
+      );
+
+      console.log(result)
+      if (result.data.success) {
+        setChores(result.data.chores.filter( (item, index) => {
+        // console.log(item)
+         return item.validFor.includes(cookies.user.name)
+       }));
+      }
+      else console.log(result.data.error)
+    },
     stopChore: async(id, photoData) => {
       console.log("Stopping chore " + id)
 
