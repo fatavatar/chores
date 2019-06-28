@@ -1,12 +1,18 @@
-FROM node:10
+FROM node:10 as build-deps
 
 WORKDIR /usr/src/app
 
-COPY package*.json ./
+COPY package*.json yarn.lock ./
 
-RUN npm install
+RUN yarn
 
 COPY . .
-EXPOSE 8080
+RUN SECS=`date +%s` && sed -i "s/__TIMESTAMP__/$SECS/g" /usr/src/app/public/cache.manifest
+RUN yarn build
 
-CMD [ "npm", "start" ]
+FROM nginx:1.12-alpine
+COPY --from=build-deps /usr/src/app/build/ /usr/share/nginx/html
+
+EXPOSE 80
+
+CMD [ "nginx", "-g", "daemon off;"]

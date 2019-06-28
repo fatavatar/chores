@@ -5,7 +5,7 @@ services:
     image: chores_client
     restart: always
     ports:
-      - 8002:3000
+      - 8002:80
 
   chores_api:
     image: chores_api
