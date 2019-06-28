@@ -10,7 +10,7 @@ import { Container } from '@material-ui/core';
 import CssBaseline from '@material-ui/core/CssBaseline';
 
 
-const apihost='https://api.chores.thelucks.org/'
+const apihost=process.env.REACT_APP_API_URL
 
 function App() {
   const [chores, setChores] = useState([])
